@@ -1,5 +1,6 @@
 import random
 from datetime import datetime, UTC
+import os
 
 from sqlalchemy import inspect, Boolean, DateTime, ForeignKey
 from sqlalchemy import create_engine
@@ -7,13 +8,13 @@ from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 
 from sqlalchemy import Column, String, Integer
 
-DATABASE_URL = 'sqlite:///C:\\Users\\peyro\\PycharmProjects\\bidauto\\server\\db.sqlite3'
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 Base = declarative_base()
 
 
 class Operators(Base):
-    __tablename__ = 'operators'
+    __tablename__ = "operators"
     id = Column(Integer, primary_key=True)
     telegram_id = Column(Integer, unique=True, nullable=False)
     name = Column(String, nullable=True)
@@ -21,8 +22,9 @@ class Operators(Base):
     is_busy = Column(Boolean, default=False)
     busy_with_chat = Column(String, nullable=True)
 
+
 class Chat(Base):
-    __tablename__ = 'chatbot_chat'
+    __tablename__ = "chatbot_chat"
 
     id = Column(Integer, primary_key=True)
     chat_code = Column(String(255), unique=True, nullable=False)
@@ -31,18 +33,18 @@ class Chat(Base):
 
 
 class Message(Base):
-    __tablename__ = 'chatbot_message'
+    __tablename__ = "chatbot_message"
 
     id = Column(Integer, primary_key=True)
-    chat_id = Column(Integer, ForeignKey('chatbot_chat.id'), nullable=False)
+    chat_id = Column(Integer, ForeignKey("chatbot_chat.id"), nullable=False)
     text = Column(String(2500), nullable=False)
     sender = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=datetime.now(UTC))
 
-    chat = relationship('Chat', back_populates='messages')
+    chat = relationship("Chat", back_populates="messages")
 
-Chat.messages = relationship('Message', order_by=Message.id, back_populates='chat')
 
+Chat.messages = relationship("Message", order_by=Message.id, back_populates="chat")
 
 
 class Database:
@@ -78,7 +80,9 @@ class Database:
     def update_operator(self, telegram_id, **kwargs):
         session = self.Session()
         try:
-            operator = session.query(Operators).filter_by(telegram_id=telegram_id).first()
+            operator = (
+                session.query(Operators).filter_by(telegram_id=telegram_id).first()
+            )
             if not operator:
                 raise ValueError("Operator not found")
 
@@ -106,7 +110,12 @@ class Database:
         if not chat:
             return ["❌ No messages found for this chat."]
 
-        messages = session.query(Message).filter(Message.chat_id == chat.id).order_by(Message.created_at).all()
+        messages = (
+            session.query(Message)
+            .filter(Message.chat_id == chat.id)
+            .order_by(Message.created_at)
+            .all()
+        )
 
         chat_history = ""
         chat_parts = []
@@ -127,6 +136,3 @@ class Database:
             chat_parts.append(chat_history)
 
         return chat_parts if chat_parts else ["❌ No messages found for this chat."]
-
-
-
