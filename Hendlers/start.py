@@ -39,7 +39,7 @@ async def start_handler(message: Message, state: FSMContext, command: CommandObj
     await message.answer(f'👋 Hello, {operator.name}, you are already registered. Here is your data:\n'
                          f'🆔 ID: {operator.custom_id}\n'
                          f'📊 Status: {"Busy" if operator.is_busy else "Not Busy"}\n'
-                         f'💬 Busy with chat: {"Dont busy" if operator.busy_with_chat is None else operator.busy_with_chat}')
+                         f'💬 Busy with chat: {"Not Busy" if operator.busy_with_chat is None else operator.busy_with_chat}')
 
 
 @start.message(RegistrationState.waiting_for_full_name)

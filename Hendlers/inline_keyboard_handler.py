@@ -17,6 +17,15 @@ class CallOperatorStates(StatesGroup):
 async def accept_request(query: CallbackQuery, state: FSMContext):
     telegram_id = query.from_user.id
     room_name = query.data.split('_')[-1]
+
+    operator_who_accept = db.get_operator_by_chat_code(room_name)
+    if operator_who_accept:
+        await query.message.edit_text("❌ The chat has already been accepted by another operator.", reply_markup=None)
+        await query.answer()
+        return
+
+
+
     db.update_operator(telegram_id=telegram_id, busy_with_chat=room_name, is_busy=True)
 
     await query.message.edit_text("✅ You have successfully accepted the chat with the user.\n"

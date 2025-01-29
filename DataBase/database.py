@@ -99,6 +99,12 @@ class Database:
         session.close()
         return operator
 
+    def get_operator_by_chat_code(self, chat_code):
+        session = self.Session()
+        operator = session.query(Operators).filter(Operators.busy_with_chat == chat_code).first()
+        session.close()
+        return operator
+
     def get_chat_history(self, chat_id: str):
         session = self.Session()
         chat = session.query(Chat).filter(Chat.chat_code == chat_id).first()
