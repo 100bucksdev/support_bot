@@ -1,10 +1,8 @@
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
-from config import BASE_SERVER_URL
 from DataBase.database import Database
 from Hendlers.inline_keyboard_handler import CallOperatorStates
-import requests
 
 from server_requests import make_request
 

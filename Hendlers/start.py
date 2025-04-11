@@ -6,6 +6,7 @@ from aiogram import Router
 from aiogram.filters import CommandStart, CommandObject
 
 from DataBase.database import Database
+from Keyboards.markup import default_keyboard
 from config import SECRET_LOGIN_KEY
 
 start = Router()
@@ -39,7 +40,7 @@ async def start_handler(message: Message, state: FSMContext, command: CommandObj
     await message.answer(f'👋 Hello, {operator.name}, you are already registered. Here is your data:\n'
                          f'🆔 ID: {operator.custom_id}\n'
                          f'📊 Status: {"Busy" if operator.is_busy else "Not Busy"}\n'
-                         f'💬 Busy with chat: {"Not Busy" if operator.busy_with_chat is None else operator.busy_with_chat}')
+                         f'💬 Busy with chat: {"Not Busy" if operator.busy_with_chat is None else operator.busy_with_chat}', reply_markup=default_keyboard)
 
 
 @start.message(RegistrationState.waiting_for_full_name)
@@ -56,6 +57,6 @@ async def process_full_name(message: Message, state: FSMContext):
 
     await state.clear()
 
-    await message.answer(f'Thank you, {full_name}! Your registration is now complete.')
+    await message.answer(f'Thank you, {full_name}! Your registration is now complete.', reply_markup=default_keyboard)
 
 
