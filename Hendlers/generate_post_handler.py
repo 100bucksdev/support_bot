@@ -1,132 +1,160 @@
-
-
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
 
-from Keyboards.inline import choose_auction_keyboard, add_photos, yes_keyboard
-from Keyboards.markup import default_keyboard
+from Keyboards.inline import choose_auction_keyboard
 from PostGenerator.generator import PostGenerator
 from config import CHANNEL_ID
 
 generate_post_handler = Router()
 
+
 class GeneratePostStates(StatesGroup):
     wait_for_lot_id = State()
+    wait_for_auction_selection = State()
+    wait_for_photos_decision = State()
+    wait_for_comment_decision = State()
+    wait_for_comment = State()
+    wait_for_publish_confirmation = State()
 
-@generate_post_handler.message(F.text=='🆕 Generate post')
+def yes_no_keyboard(prefix):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Yes", callback_data=f"{prefix}_yes"),
+         InlineKeyboardButton(text="No", callback_data=f"{prefix}_no")]
+    ])
+
+@generate_post_handler.message(F.text == "🆕 Generate post")
 async def generate_post(message: Message, state: FSMContext):
-    await message.answer('Send lot ID')
+    await message.answer("Send Lot ID:")
     await state.set_state(GeneratePostStates.wait_for_lot_id)
+
 
 @generate_post_handler.message(GeneratePostStates.wait_for_lot_id)
 async def handle_lot_id(message: Message, state: FSMContext):
     lot_id = message.text
     if not lot_id.isdigit():
-        await message.answer('Invalid lot ID. Please send a valid lot ID.')
-        await state.set_state(GeneratePostStates.wait_for_lot_id)
+        await message.answer("Wrong Lot ID. Please send a valid ID.")
         return
-    await message.answer('Choose auction:', reply_markup=choose_auction_keyboard(lot_id))
+    await state.update_data(lot_id=lot_id)
+    await message.answer("Choose auction:", reply_markup=choose_auction_keyboard())
+    await state.set_state(GeneratePostStates.wait_for_auction_selection)
 
-@generate_post_handler.callback_query(F.data.startswith('auction_'))
+@generate_post_handler.callback_query(GeneratePostStates.wait_for_auction_selection, F.data.startswith("auction_"))
 async def handle_auction_selection(query: CallbackQuery, state: FSMContext):
-    auction_lot_id = query.data.replace('auction_', '').split('_')
-    auction = auction_lot_id[0]
-    lot_id = auction_lot_id[1]
+    auction = query.data.split("_")[1]  # Предполагается формат "auction_{auction}"
+    data = await state.get_data()
+    lot_id = data["lot_id"]
     generator = PostGenerator(lot_id, auction)
     if generator.calculator_data is None or generator.lot_data is None:
-        await query.message.answer('Invalid Auction.')
-        await query.answer()
-        await state.clear()
-        return
-    text = generator.generate_text()
-    await query.message.edit_text(text, reply_markup=add_photos(lot_id, auction))
-    await query.answer()
-    await state.clear()
-
-@generate_post_handler.callback_query(F.data.startswith('add_photos_'))
-async def handle_add_photos(query: CallbackQuery):
-    auction_lot_id = query.data.replace('add_photos_', '').split('_')
-    lot_id = auction_lot_id[0]
-    auction = auction_lot_id[1]
-    generator = PostGenerator(lot_id, auction)
-    if generator.calculator_data is None or generator.lot_data is None:
-        await query.message.answer('Invalid Auction.')
+        await query.message.answer("Wrong auction or lot ID. Please try again.")
         await query.answer()
         return
-
-    await query.message.delete()
-
-    text = generator.generate_text()
-    images_urls = generator.get_first_three_images()
-    if images_urls:
-        media = []
-        for i, url in enumerate(images_urls[:3]):
-            if i == 0:
-                media.append(InputMediaPhoto(media=url, caption=text))
-            else:
-                media.append(InputMediaPhoto(media=url))
-        await query.message.answer_media_group(media=media)
-        await query.message.answer('Publish?',reply_markup=yes_keyboard(lot_id, auction))
-    await query.answer()
-
-@generate_post_handler.callback_query(F.data.startswith('publish_'))
-async def handle_publish_request(query: CallbackQuery):
-    auction_lot_id = query.data.replace('publish_', '').split('_')
-    lot_id = auction_lot_id[0]
-    auction = auction_lot_id[1]
-    generator = PostGenerator(lot_id, auction)
-    if generator.calculator_data is None or generator.lot_data is None:
-        await query.message.answer('Invalid Auction.')
-        await query.answer()
-        return
-    text = generator.generate_text()
-    await query.bot.send_message(
-        chat_id=CHANNEL_ID,
-        text=text
-    )
-    await query.message.answer('Post published to channel (text only)!', reply_markup=default_keyboard)
+    await state.update_data(auction=auction, generator=generator)
+    await query.message.edit_text("Add 3 Photos?", reply_markup=yes_no_keyboard("photos"))
+    await state.set_state(GeneratePostStates.wait_for_photos_decision)
     await query.answer()
 
 
-@generate_post_handler.callback_query(F.data.startswith('yes_'))
-async def handle_publish(query: CallbackQuery):
-    auction_lot_id = query.data.replace('yes_', '').split('_')
-    lot_id = auction_lot_id[0]
-    auction = auction_lot_id[1]
-    generator = PostGenerator(lot_id, auction)
-    if generator.calculator_data is None or generator.lot_data is None:
-        await query.message.answer('Invalid Auction.')
-        await query.answer()
-        return
+@generate_post_handler.callback_query(GeneratePostStates.wait_for_photos_decision, F.data.in_(["photos_yes", "photos_no"]))
+async def handle_photos_decision(query: CallbackQuery, state: FSMContext):
+    include_photos = query.data == "photos_yes"
+    await state.update_data(include_photos=include_photos)
+    await query.message.edit_text("Want add comment?", reply_markup=yes_no_keyboard("comment"))
+    await state.set_state(GeneratePostStates.wait_for_comment_decision)
+    await query.answer()
 
-    text = generator.generate_text()
-    images_urls = generator.get_first_three_images()
-    if images_urls:
-        media = []
-        for i, url in enumerate(images_urls[:3]):
-            if i == 0:
-                media.append(InputMediaPhoto(media=url, caption=text))
-            else:
-                media.append(InputMediaPhoto(media=url))
-        # Post to the specific channel
-        await query.bot.send_media_group(
-            chat_id=CHANNEL_ID,
-            media=media
-        )
-        await query.message.answer('Post published to channel!', reply_markup=default_keyboard)
+@generate_post_handler.callback_query(GeneratePostStates.wait_for_comment_decision, F.data.in_(["comment_yes", "comment_no"]))
+async def handle_comment_decision(query: CallbackQuery, state: FSMContext):
+    if query.data == "comment_yes":
+        await query.message.edit_text("Send your comment:")
+        await state.set_state(GeneratePostStates.wait_for_comment)
     else:
-        # Optionally handle case with no images
-        await query.bot.send_message(
-            chat_id=CHANNEL_ID,
+        await show_preview(query, state)
+    await query.answer()
+
+
+@generate_post_handler.message(GeneratePostStates.wait_for_comment)
+async def handle_comment(message: Message, state: FSMContext):
+    comment = message.text
+    await state.update_data(comment=comment)
+    await show_preview(message, state)
+
+async def show_preview(message_or_query, state: FSMContext):
+    data = await state.get_data()
+    include_photos = data.get("include_photos", False)
+    comment = data.get("comment", "")
+    generator = data["generator"]
+
+    text = generator.generate_text(comment)
+
+    if include_photos:
+        images_urls = generator.get_first_three_images()
+        if images_urls:
+            media = []
+            for i, url in enumerate(images_urls[:3]):
+                if i == 0:
+                    media.append(InputMediaPhoto(media=url, caption=text))
+                else:
+                    media.append(InputMediaPhoto(media=url))
+            await message_or_query.bot.send_media_group(
+                chat_id=message_or_query.from_user.id,
+                media=media
+            )
+        else:
+            await message_or_query.bot.send_message(
+                chat_id=message_or_query.from_user.id,
+                text=text
+            )
+    else:
+        await message_or_query.bot.send_message(
+            chat_id=message_or_query.from_user.id,
             text=text
         )
-        await query.message.answer('Post published to channel (text only)!', reply_markup=default_keyboard)
 
+    await message_or_query.bot.send_message(
+        chat_id=message_or_query.from_user.id,
+        text="Publish post?",
+        reply_markup=yes_no_keyboard("publish")
+    )
+    await state.set_state(GeneratePostStates.wait_for_publish_confirmation)
+
+
+@generate_post_handler.callback_query(GeneratePostStates.wait_for_publish_confirmation, F.data.in_(["publish_yes", "publish_no"]))
+async def handle_publish_decision(query: CallbackQuery, state: FSMContext):
+    if query.data == "publish_yes":
+        data = await state.get_data()
+        include_photos = data.get("include_photos", False)
+        comment = data.get("comment", "")
+        generator = data["generator"]
+
+        text = generator.generate_text(comment)
+
+        if include_photos:
+            images_urls = generator.get_first_three_images()
+            if images_urls:
+                media = []
+                for i, url in enumerate(images_urls[:3]):
+                    if i == 0:
+                        media.append(InputMediaPhoto(media=url, caption=text))
+                    else:
+                        media.append(InputMediaPhoto(media=url))
+                await query.bot.send_media_group(
+                    chat_id=CHANNEL_ID,
+                    media=media
+                )
+            else:
+                await query.bot.send_message(
+                    chat_id=CHANNEL_ID,
+                    text=text
+                )
+        else:
+            await query.bot.send_message(
+                chat_id=CHANNEL_ID,
+                text=text
+            )
+        await query.message.edit_text("Post published successfully!")
+    else:
+        await query.message.edit_text("Post publication canceled.")
+    await state.clear()
     await query.answer()
-
-
-
-
-

@@ -47,11 +47,11 @@ class PostGenerator:
             images = images[:3]
         return images
 
-    def generate_text(self):
+    def generate_text(self, comment=''):
         prices = self.get_minimal_prices()
         text = (
             f"https://bidauto.online/lot/{self.lot_id}?auction_name={self.auction.upper()}\n\n"
-            f"🚗🔥 Laba geras pasiūlymas aukcione! 🔥🚗\n"
+            f"🚗🔥 Labai geras pasiūlymas aukcione! 🔥🚗\n"
             f"📌 Pardavėjas: Draudimas 👍\n"
             f"📌 VIN: {self.lot_data['VIN']}\n"
             f"📌 Būklė: {self.lot_data['LotCondition']}\n"
@@ -66,6 +66,7 @@ class PostGenerator:
             f"✅ 21% PVM\n"
             f"✅ 350€ Krova\n"
             f"⏳ Liko mažai laiko – nepraleiskite progos! ⏳💨\n"
-            f"✉️ Rašykite mums DM arba apsilankykite 👉 bidauto.online"
+            f"✉️ Rašykite mums DM arba apsilankykite 👉 bidauto.online\n\n"
+            f"{f'<b>{comment}</b>' if comment else ''}\n\n"
         )
         return text
