@@ -45,6 +45,8 @@ class PostGenerator:
         images = self.lot_data['VehicleImages']
         if len(images) > 3:
             images = images[:3]
+        # Ensure .jpg extension for each image URL
+        images = [url if url.lower().endswith('.jpg') else url + '.jpg' for url in images]
         return images
 
     def generate_text(self, comment=''):
