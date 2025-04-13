@@ -1,7 +1,12 @@
+import os
+import tempfile
+
+import aiohttp
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto, InlineKeyboardMarkup, InlineKeyboardButton, \
+    FSInputFile
 
 from Keyboards.inline import choose_auction_keyboard
 from PostGenerator.generator import PostGenerator
@@ -42,7 +47,7 @@ async def handle_lot_id(message: Message, state: FSMContext):
 
 @generate_post_handler.callback_query(GeneratePostStates.wait_for_auction_selection, F.data.startswith("auction_"))
 async def handle_auction_selection(query: CallbackQuery, state: FSMContext):
-    auction = query.data.split("_")[1]  # Предполагается формат "auction_{auction}"
+    auction = query.data.split("_")[1]
     data = await state.get_data()
     lot_id = data["lot_id"]
     generator = PostGenerator(lot_id, auction)
@@ -92,15 +97,54 @@ async def show_preview(message_or_query, state: FSMContext):
         images_urls = generator.get_first_three_images()
         if images_urls:
             media = []
-            for i, url in enumerate(images_urls[:3]):
-                if i == 0:
-                    media.append(InputMediaPhoto(media=url, caption=text))
-                else:
-                    media.append(InputMediaPhoto(media=url))
-            await message_or_query.bot.send_media_group(
-                chat_id=message_or_query.from_user.id,
-                media=media
-            )
+            temp_files = []  # Track temp files for cleanup
+            async with aiohttp.ClientSession() as session:
+                for i, url in enumerate(images_urls[:3]):
+                    try:
+                        # Check if the image URL is accessible
+                        async with session.get(url) as response:
+                            if response.status == 200:
+                                # Read image data
+                                image_data = await response.read()
+                                # Create a temporary file to store the image
+                                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
+                                temp_file.write(image_data)
+                                temp_file_path = temp_file.name
+                                temp_file.close()  # Explicitly close the file handle
+                                temp_files.append(temp_file_path)  # Track for cleanup
+
+                                # Create FSInputFile from the temporary file
+                                image_file = FSInputFile(path=temp_file_path, filename=f"image_{i}.jpg")
+                                if i == 0:
+                                    media.append(InputMediaPhoto(media=image_file, caption=text))
+                                else:
+                                    media.append(InputMediaPhoto(media=image_file))
+                            else:
+                                print(f"Failed to fetch image from {url}: Status {response.status}")
+                                continue
+                    except Exception as e:
+                        print(f"Error fetching image from {url}: {e}")
+                        continue
+
+            if media:
+                try:
+                    await message_or_query.bot.send_media_group(
+                        chat_id=message_or_query.from_user.id,
+                        media=media
+                    )
+                finally:
+                    # Clean up temporary files
+                    for temp_file_path in temp_files:
+                        try:
+                            if os.path.exists(temp_file_path):
+                                os.unlink(temp_file_path)
+                        except Exception as e:
+                            print(f"Error deleting temp file {temp_file_path}: {e}")
+            else:
+                await message_or_query.bot.send_message(
+                    chat_id=message_or_query.from_user.id,
+                    text=text
+                )
         else:
             await message_or_query.bot.send_message(
                 chat_id=message_or_query.from_user.id,

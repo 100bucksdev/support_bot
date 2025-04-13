@@ -30,14 +30,16 @@ class PostGenerator:
         data = response.json()
         print(data)
         return data
+
     def get_minimal_prices(self):
         prices = self.calculator_data['calculator']
         min_prices = {
-            'broker_fee': prices['broker_fee'],
-            'transportation_price': min(prices['transportation_price'].values()),
-            'ocean_ship': min(prices['ocean_ship'].values()),
-            'additional': prices['additional'],
-            'totals': min(prices['totals'].values())
+            'broker_fee': prices.get('broker_fee', 0),
+            'transportation_price': min(prices.get('transportation_price', {}).values()) if prices.get(
+                'transportation_price') else 0,
+            'ocean_ship': min(prices.get('ocean_ship', {}).values()) if prices.get('ocean_ship') else 0,
+            'additional': prices.get('additional', 0),
+            'totals': min(prices.get('totals', {}).values()) if prices.get('totals') else 0
         }
         return min_prices
 
@@ -45,8 +47,6 @@ class PostGenerator:
         images = self.lot_data['VehicleImages']
         if len(images) > 3:
             images = images[:3]
-        # Ensure .jpg extension for each image URL
-        images = [url if url.lower().endswith('.jpg') else url + '.jpg' for url in images]
         return images
 
     def generate_text(self, comment=''):
