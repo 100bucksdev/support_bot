@@ -54,6 +54,9 @@ class PostGenerator:
         text = (
             f"https://bidauto.online/lot/{self.lot_id}?auction_name={self.auction.upper()}\n\n"
             f"🚗🔥 Labai geras pasiūlymas aukcione! 🔥🚗\n"
+            f"🚗 <b>{self.lot_data.get('Year')} {self.lot_data.get('Make')} {self.lot_data.get('ModelGroup')}</b>\n"
+            f"🕔 <b>{self.lot_data.get('Odometer')} miles</b>\n"
+            f"⚠️ <u><b>REZERVAS : ${self.lot_data.get('ReservePrice') if self.lot_data.get('ReservePrice') else 'N/A'}</b></u>"
             f"📌 Pardavėjas: Draudimas 👍\n"
             f"📌 VIN: {self.lot_data['VIN']}\n"
             f"📌 Būklė: {self.lot_data['LotCondition']}\n"
