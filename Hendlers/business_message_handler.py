@@ -94,6 +94,6 @@ async def handle_message(message: Message):
         await message.answer("You don't have telegram premium. You need to subscribe to connect the bot to your account")
         return
 
-    video = FSInputFile("src/video/info_video.MP4")
+    video = FSInputFile("src/video/info_video.mp4")
     await message.reply_video(video, caption="Here is the instruction how to connect this bot to your account")
 
