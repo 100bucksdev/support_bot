@@ -18,10 +18,14 @@ async def main():
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
 
-    dp.include_router(generate_post_handler)
-    dp.include_router(start)
+
     dp.include_router(business_message_handler)
     dp.include_router(new_pattern_router)
+
+    dp.include_router(generate_post_handler)
+
+    dp.include_router(start)
+
 
 
     dp.include_router(markup_handler)
