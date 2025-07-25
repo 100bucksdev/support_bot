@@ -75,7 +75,7 @@ async def cancel_handler(query: CallbackQuery, state: FSMContext):
 @new_pattern_router.callback_query(F.data.startswith('delete_and_add_new_'))
 async def delete_and_add_new_handler(query: CallbackQuery, state: FSMContext):
     pattern_question = query.data.split('delete_and_add_new_', 1)[1]
-    resp = await make_request(base_url=CHAT_PROCESS_SERVICE_URL, method='DELETE', url='pattern', params={'question': pattern_question})
+    resp = await make_request(base_url=CHAT_PROCESS_SERVICE_URL, method='DELETE', url='pattern', params={'uuid': pattern_question})
     if not isinstance(resp, dict) or resp.get('status') != 200:
         await query.message.answer("❌ Delete failed. Try again later.")
         await state.clear()
