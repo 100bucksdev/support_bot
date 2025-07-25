@@ -3,7 +3,7 @@ name: Build, Push and Deploy Dispatch Auto
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 jobs:
