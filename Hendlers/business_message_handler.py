@@ -40,7 +40,7 @@ async def handle_business_message(message: Message):
     await process_new_business_message(message)
 
 
-@business_message_handler.callback_query(F.data.startswith('send_answer_'))
+@business_message_handler.callback_query(F.data.startswith('send|answer|'))
 async def send_answer_handler(query: CallbackQuery):
     ai_response_id = query.data.split('|')[-3]
     chat_with_client_id = query.data.split('|')[-2]
