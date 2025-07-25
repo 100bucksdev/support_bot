@@ -42,9 +42,9 @@ async def handle_business_message(message: Message):
 
 @business_message_handler.callback_query(F.data.startswith('send_answer_'))
 async def send_answer_handler(query: CallbackQuery):
-    ai_response_id = query.data.split('_')[-3]
-    chat_with_client_id = query.data.split('_')[-2]
-    business_connection_id = query.data.split('_')[-1]
+    ai_response_id = query.data.split('|')[-3]
+    chat_with_client_id = query.data.split('|')[-2]
+    business_connection_id = query.data.split('|')[-1]
 
     response = await make_request(url=f'ai-response/{ai_response_id}')
     if response['status'] != 200:

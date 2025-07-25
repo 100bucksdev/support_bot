@@ -30,7 +30,7 @@ def send_answer_to_chat(ai_response_id: int, chat_with_client_id: int, connectio
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text='✅ Send response to chat', callback_data=f'send_answer_{ai_response_id}_{chat_with_client_id}_{connection_id}')
+                InlineKeyboardButton(text='✅ Send response to chat', callback_data=f'send|answer|{ai_response_id}|{chat_with_client_id}|{connection_id}')
             ]
         ]
     )
