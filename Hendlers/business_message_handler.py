@@ -40,6 +40,7 @@ async def handle_business_message(message: Message):
     await process_new_business_message(message)
 
 
+
 @business_message_handler.callback_query(F.data.startswith('send|answer|'))
 async def send_answer_handler(query: CallbackQuery):
     ai_response_id = query.data.split('|')[-3]
@@ -71,10 +72,6 @@ async def send_answer_handler(query: CallbackQuery):
         answer_message_id = message_response.get("body").get("id")
 
     await make_request(url=f'ai-response/{ai_response_id}', method='PUT', data={'answer_message_id': answer_message_id})
-
-
-
-
 
 
 @business_message_handler.message(Command("connect"))

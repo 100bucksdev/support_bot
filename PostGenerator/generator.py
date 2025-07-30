@@ -54,6 +54,7 @@ class PostGenerator:
         reserve_price = self.lot_data.get('ReservePrice')
         text = (
             f"https://bidauto.online/lot/{self.lot_id}?auction_name={self.auction.upper()}\n\n"
+            f"📲Susisiekite : https://t.me/bidautoLT\n"
             f"🚗🔥 Labai geras pasiūlymas aukcione! 🔥🚗\n"
             f"🚗 <b>{self.lot_data.get('Year')} {self.lot_data.get('Make')} {self.lot_data.get('ModelGroup')}</b>\n"
             f"🕔 <b>{self.lot_data.get('Odometer')} miles</b>\n"
