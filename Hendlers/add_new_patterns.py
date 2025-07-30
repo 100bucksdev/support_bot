@@ -138,6 +138,36 @@ async def save_patterns_from_txt_handler(query: CallbackQuery, state: FSMContext
             await query.message.answer('Error while saving.')
     await query.message.edit_text('Successfully saved.')
 
+@new_pattern_router.callback_query(F.data == 'simple_add_patterns')
+async def question_handler(query: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await query.answer()
+    await query.message.answer("🖊 Send Question:")
+    await state.set_state(AddNewPatternsStates.waiting_for_question)
+
+@new_pattern_router.message(AddNewPatternsStates.waiting_for_question)
+async def handle_question(message: Message, state: FSMContext):
+    question = message.text
+    response = await make_request(base_url=CHAT_PROCESS_SERVICE_URL, url='pattern', params={'question': question})
+    await state.update_data(question=question)
+    if not isinstance(response, dict) or response.get('status') != 200:
+        await message.answer("❌ Error occurred. Please try again later.")
+        await state.clear()
+        return
+    body = response.get('body') or []
+    hit = body[0] if body else None
+    if hit and hit.get('score', 0) > SIM_THRESHOLD:
+        await state.update_data(existing_hit=hit)
+        await message.answer(
+            f"ℹ️ Pattern with same question already exists:\n"
+            f"➖ Question: {hit.get('question', '')}\n"
+            f"➖ Answer: {hit.get('answer', '')}\n"
+            f"✨ Similarity: {hit.get('score', 0) * 100:.2f}%\n",
+            reply_markup=is_continue(hit.get('uuid', ''))
+        )
+        return
+    await state.set_state(AddNewPatternsStates.waiting_for_answer)
+    await message.answer("🖊 Send Answer:")
 
 @new_pattern_router.message(AddNewPatternsStates.waiting_for_answer)
 async def handle_answer(message: Message, state: FSMContext):
