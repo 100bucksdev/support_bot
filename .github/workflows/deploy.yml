@@ -46,5 +46,5 @@ jobs:
             docker rm support_bot || true
 
             echo "🚀 Starting new container..."
-            cd /srv/deploy_config
+            cd /srv/bidauto/deploy_config
             docker compose up -d
