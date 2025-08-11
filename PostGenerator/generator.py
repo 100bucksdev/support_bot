@@ -1,3 +1,6 @@
+import asyncio
+
+import aiohttp
 import requests
 
 from config import BASE_SERVER_URL
@@ -7,31 +10,72 @@ class PostGenerator:
     def __init__(self, lot_id, auction):
         self.lot_id = lot_id
         self.auction = auction
-        self.lot_data = self.get_lot()
-        self.calculator_data = self.get_calculator_data()
+        self.lot_data = None
+        self.calculator_data = None
 
-    def get_lot(self):
-        response = requests.get(f'{BASE_SERVER_URL}api/v1/auction-vehicles/get-vin-or-lot/?vin_or_lot={self.lot_id}&auction={self.auction}')
-        if response.status_code != 200:
+    async def initialize(self):
+        await asyncio.gather(
+            self._load_lot_data(),
+            self._load_calculator_data()
+        )
+
+    async def _load_lot_data(self):
+        self.lot_data = await self.get_lot()
+
+    async def _load_calculator_data(self):
+        self.calculator_data = await self.get_calculator_data()
+
+    async def get_lot(self):
+        url = f'{BASE_SERVER_URL}api/v1/auction-vehicles/get-vin-or-lot/?vin_or_lot={self.lot_id}&auction={self.auction}'
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status != 200:
+                        print(f"Failed to get lot data: {response.status}")
+                        return None
+
+                    data = await response.json()
+                    return data
+
+        except Exception as e:
+            print(f"Error getting lot data: {e}")
             return None
-        data = response.json()
 
-        return data
-
-    def get_calculator_data(self):
+    async def get_calculator_data(self):
         data = {
             'price': 1000,
             'lot_id': self.lot_id,
             'auction': self.auction
         }
-        response = requests.post(f'{BASE_SERVER_URL}api/v1/calculator/', json=data)
-        if response.status_code != 200:
+
+        url = f'{BASE_SERVER_URL}api/v1/calculator/'
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=data) as response:
+                    if response.status != 200:
+                        print(f"Failed to get calculator data: {response.status}")
+                        return None
+
+                    response_data = await response.json()
+                    print(response_data)
+                    return response_data
+
+        except Exception as e:
+            print(f"Error getting calculator data: {e}")
             return None
-        data = response.json()
-        print(data)
-        return data
 
     def get_minimal_prices(self):
+        if not self.calculator_data:
+            return {
+                'broker_fee': 0,
+                'transportation_price': 0,
+                'ocean_ship': 0,
+                'additional': 0,
+                'totals': 0
+            }
+
         prices = self.calculator_data['calculator']
         min_prices = {
             'broker_fee': prices.get('broker_fee', 0),
@@ -44,12 +88,18 @@ class PostGenerator:
         return min_prices
 
     def get_first_three_images(self):
+        if not self.lot_data or 'VehicleImages' not in self.lot_data:
+            return []
+
         images = self.lot_data['VehicleImages']
         if len(images) > 3:
             images = images[:3]
         return images
 
     def generate_text(self, comment=''):
+        if not self.lot_data or not self.calculator_data:
+            return "Ошибка: данные не загружены"
+
         prices = self.get_minimal_prices()
         reserve_price = self.lot_data.get('ReservePrice')
         text = (

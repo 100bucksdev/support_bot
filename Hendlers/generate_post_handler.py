@@ -51,6 +51,8 @@ async def handle_auction_selection(query: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     lot_id = data["lot_id"]
     generator = PostGenerator(lot_id, auction)
+    await generator.initialize()
+
     if generator.calculator_data is None or generator.lot_data is None:
         await query.message.answer("Wrong auction or lot ID. Please try again.")
         await query.answer()
