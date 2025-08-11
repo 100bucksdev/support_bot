@@ -29,7 +29,7 @@ class PostGenerator:
         url = f'{BASE_SERVER_URL}api/v1/auction-vehicles/get-vin-or-lot/?vin_or_lot={self.lot_id}&auction={self.auction}'
 
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=5) as session:
                 async with session.get(url) as response:
                     if response.status != 200:
                         print(f"Failed to get lot data: {response.status}")
@@ -52,7 +52,7 @@ class PostGenerator:
         url = f'{BASE_SERVER_URL}api/v1/calculator/'
 
         try:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(timeout=5) as session:
                 async with session.post(url, json=data) as response:
                     if response.status != 200:
                         print(f"Failed to get calculator data: {response.status}")
