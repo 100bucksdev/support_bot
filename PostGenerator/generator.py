@@ -14,10 +14,8 @@ class PostGenerator:
         self.calculator_data = None
 
     async def initialize(self):
-        await asyncio.gather(
-            self._load_lot_data(),
-            self._load_calculator_data()
-        )
+        await self._load_lot_data()
+        await self._load_calculator_data()
 
     async def _load_lot_data(self):
         self.lot_data = await self.get_lot()
