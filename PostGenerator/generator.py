@@ -12,6 +12,7 @@ class PostGenerator:
         self.lot_id = lot_id
         self.auction = auction
         self.lot_data = None
+        self.additional_data = None
         self.calculator_data = None
 
     async def initialize(self):
@@ -19,10 +20,30 @@ class PostGenerator:
         await self._load_calculator_data()
 
     async def _load_lot_data(self):
-        self.lot_data = await self.get_lot()
-
+        self.lot_data, self.additional_data = await asyncio.gather(
+            self.get_lot(),
+            self.get_additional_lot_info()
+        )
     async def _load_calculator_data(self):
         self.calculator_data = await self.get_calculator_data()
+
+    async def get_additional_lot_info(self):
+        url = f"{BASE_SERVER_URL}api/v1/auction-vehicles/indicators/{self.auction}/{self.lot_id}/"
+        try:
+            async with aiohttp.ClientSession(timeout=ClientTimeout(5)) as session:
+                async with session.get(url) as response:
+                    if response.status != 200:
+                        print(f"Failed to get lot data: {response.status}")
+                        return None
+
+                    data = await response.json()
+                    return data
+
+        except Exception as e:
+            print(f"Error getting lot data: {e}")
+            return None
+
+
 
     async def get_lot(self):
         url = f'{BASE_SERVER_URL}api/v1/auction-vehicles/get-vin-or-lot/?vin_or_lot={self.lot_id}&auction={self.auction}'
@@ -122,7 +143,9 @@ class PostGenerator:
             f"✅ 21% PVM\n"
             f"✅ 350€ Krova\n"
             f"⏳ Liko mažai laiko – nepraleiskite progos! ⏳💨\n"
+            f"💸Preliminarus MAX BID :  ${self.additional_data.get('avg_prices', {}).get('avg')}\n"
             f"✉️ Rašykite mums DM arba apsilankykite 👉 bidauto.online\n\n"
+            
             f"{f'<b>{comment}</b>' if comment else ''}\n\n"
         )
         return text
