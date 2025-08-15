@@ -143,7 +143,7 @@ class PostGenerator:
             f"✅ 21% PVM\n"
             f"✅ 350€ Krova\n"
             f"⏳ Liko mažai laiko – nepraleiskite progos! ⏳💨\n"
-            f"💸Preliminarus MAX BID :  ${self.additional_data.get('avg_prices', {}).get('avg')}\n"
+            f"💸VIDUTINE pardavimo kaina :  ${self.additional_data.get('avg_prices', {}).get('avg')}\n"
             f"✉️ Rašykite mums DM arba apsilankykite 👉 bidauto.online\n\n"
             
             f"{f'<b>{comment}</b>' if comment else ''}\n\n"
